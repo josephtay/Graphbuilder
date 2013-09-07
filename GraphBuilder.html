@@ -261,7 +261,7 @@ and open the template in the editor.
             var zoom = d3.behavior.zoom()
                 .x(x)
                 .y(y)
-                .scaleExtent([0.1,10])
+                .scaleExtent([0.001,1000])
                 .on("zoom",zoomed);
 
             var line = d3.svg.line()
