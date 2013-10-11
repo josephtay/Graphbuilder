@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    .node {
+        stroke: #734F00;
+        stroke-width: 0.5px;
+    }
+
+    .node:hover{
+        stroke: #FFAF00;
+        stroke-width: 1.5px;
+    }
+
+    .link {
+        stroke: #999;
+        stroke-opacity: .6;
+    }
+
+    body {
+        font: 20px Helvetica;         
+        margin: 0px;
+        background-color: rgba(255,255,244,1.0);/*#3D3C2A;*/
+    }
+
+    #wrapper {
+        position: relative;
+        min-height: 800px;
+        min-width: 1080px;
+        height:100%;
+        width:100%;
+        overflow: hidden;
+    }
+
+    #content_wrapper {
+        position:absolute;
+        min-height: 700px;
+        min-width: 1280px;                
+        z-index:100;
+        display: table;
+        /*padding-top: 80px;*/
+        padding-left:40px;
+    }
+
+    #left_column {
+        position: relative;
+        width: 400px;
+        padding-left: 40px;
+        padding-right: 60px;
+        display: table-cell;
+    }
+    #left_line {
+        fill:#504F48;
+        stroke-width:1px;
+        stroke:#504F48;
+    }
+
+    #right_column {
+        display: table-cell;
+    }
+    #top_line {
+        fill:#424239;
+        stroke-width:1px;
+        stroke:#424239;
+    }
+
+    #backgroundCanvas {
+        height: 2048px;
+        width: 2560px;
+    }
+
+    #tempdiv {
+        margin-top: 60px;
+    }
+
+    .instructionsBox {
+        position:absolute;
+        z-index: 1000;
+        height: 130px;
+        width:345px;
+        top: 78px;
+        left:98px;
+    }
+
+    #syntaxTab:hover {
+        cursor:pointer;
+    }
+
+    #input {
+        font: 16px sans-serif;
+        border: 1px solid #DDD;
+        border-radius: 5px;
+        box-shadow: 0 0 2px black;
+        color: #666;
+        float: left;
+        padding: 5px 5px 5px 5px;
+        width: 330px;
+        outline: none;
+    }
+
+    #input:hover {
+        font: 16px sans-serif;
+        border: 1px solid #DDD;
+        border-radius: 5px;
+        box-shadow: 0 0 7px black;
+        color: #666;
+        float: left;
+        padding: 5px 5px 5px 5px;
+        width: 330px;
+        outline: none;
+    }
+
+    #avalue {
+        font: 16px sans-serif;
+        border: 1px solid #DDD;
+        border-radius: 5px;
+        box-shadow: 0 0 2px black;
+        color: #666;
+        padding: 5px 5px 5px 5px;
+        width: 70px;
+        outline: none;
+    }
+
+    #avalue:hover {
+        font: 16px sans-serif;
+        border: 1px solid #DDD;
+        border-radius: 5px;
+        box-shadow: 0 0 7px black;
+        color: #666;
+        padding: 5px 5px 5px 5px;
+        width: 70px;
+        outline: none;
+    }                   
+
+    .shortText {
+        font: 16px sans-serif;
+        border: 1px solid #DDD;
+        border-radius: 5px;
+        box-shadow: 0 0 2px black;
+        color: #666;
+        padding: 5px 5px 5px 5px;
+        width: 70px;
+        outline: none;
+    }
+
+    .shortText:hover {
+        font: 16px sans-serif;
+        border: 1px solid #DDD;
+        border-radius: 5px;
+        box-shadow: 0 0 7px black;
+        color: #666;
+        padding: 5px 5px 5px 5px;
+        width: 70px;
+        outline: none;
+    }            
+
+    .instructions {
+        fill:#EEB422;
+        stroke-width:3px;
+        stroke:#EEB442;
+    }            
+
+    .menuOne {
+        fill:#EEB442;
+        stroke-width:3px;
+        stroke:#EEB442;
+    }
+
+    .menuTwo {
+        fill:#FFC125;
+        stroke-width:3px;
+        stroke:#FFC125;
+    }
+
+    .menuThree {
+        fill:#FFD700;
+        stroke-width:3px;
+        stroke:#FFD700;
+    }
+
+    .menuFour {
+        fill:#EEEE00;
+        stroke-width:3px;
+        stroke:#EEEE00;
+    }            
+
+    .graphBackground {
+        fill:#FFFFE0;
+        stroke-width:3px;
+        stroke:#DCDCDC;
+    }
+
+    svg {
+        font: 15px sans-serif;
+        /*shape-rendering: crispEdges;*/
+    }
+
+    rect {
+        fill: rgba(215,0,54,0.0);
+        cursor:move;
+    }
+
+    .axis path, .axis line {
+        fill: none;
+        stroke: black;
+        shape-rendering: crispEdges;
+        cursor:move;
+    }
+
+    .line {
+        fill: none;
+        cursor:move;
+        stroke: #DC143C;
+        stroke-width: 3px;
+
+    }
+</style>
+<script src="javascripts/jquery-1.8.0.min.js" type="text/javascript"></script>
+<script src="javascripts/jquery-ui-1.9.1.custom.min.js" type="text/javascript"></script>
+<script src="javascripts/d3.v3.min.js" type="text/javascript"></script>
+<script src="javascripts/math.js" type="text/javascript"></script>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript">
+    var significanceThreshold = 0.05;
+    var nonSignificantColor = "#FFFFFF";
+    var lowestLightness = 0.1;
+    var highestLightness = 0.85;
+    var percent_scale_user = d3.scale.linear().range([lowestLightness,highestLightness]);
+    var percent_scale_cat = d3.scale.linear().range([lowestLightness,highestLightness]);
+    var catHue = 20;
+    var userHue = 40;
+    var processedData;
+    var tempVarDumpUsers;
+    var tempVarDumpCat;
+    var maxCat;
+    var cutOffUser;
+    var cutOffCat;
+    var minCat;
+    var minUsers;
+    var maxUsers;
+    var userColorScaler;
+    var catColorScaler
+        
+    function convertPercentToColor(type,percent) {
+        var color;
+        if(type==1){
+            color = d3.hsl(catHue, 1.00, 1-parseFloat(percent));
+        }else{
+            color = d3.hsl(userHue, 1.00, 1-parseFloat(percent));
+        }
+        return color;
+    }
+    
+    // Finds the quartiles of a sorted array (because the one provided by d3.js has some issues)
+    function quantile(numberArray, percentile){
+        var size = numberArray.length;
+        var position;
+        if(percentile == 0){
+            position = 0;
+        }else if(percentile == 0.5 && size%2 != 0){
+            var pos1 = Math.ceil(size*percentile)-1;
+            var pos2 = Math.floor(size*percentile)-1;
+            var median = (Number(numberArray[pos1])+Number(numberArray[pos2]))/2;
+            //alert(median);
+            return median;
+        }else{
+            position = Math.round(size*percentile)-1;
+        }
+    
+        return numberArray[position];
+    }
+
+    $(document).ready(function(){
+        var percent_scale = d3.scale.linear().range([lowestLightness,highestLightness]);
+        tempVarDumpUsers=[];
+        tempVarDumpCat=[];
+        
+        var width = 1180,
+        height = 770;
+
+        var color = d3.scale.category20();
+
+        var force = d3.layout.force()
+        .charge(-25)
+        .linkDistance(45)
+        .size([width, height]);        
+        
+        var svg = d3.select("#content_wrapper").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+        
+        svg.append("svg:rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("stroke", "#000");        
+
+        d3.json("networkData.json", function(error, graph) {
+            var nodeArray=graph.nodes;
+            for (var i=0;i<nodeArray.length;i++){
+                if(nodeArray[i]['type']==2){
+                    tempVarDumpUsers.push(nodeArray[i]['totalRev']);
+                }else{
+                    tempVarDumpCat.push(nodeArray[i]['totalRev']);
+                }
+            }
+            
+            tempVarDumpCat.sort(function(a,b){
+                return a-b
+            });
+                
+            tempVarDumpUsers.sort(function(a,b){
+                return a-b
+            });                      
+        
+            minCat = Number(quantile(tempVarDumpCat,0));
+            cutOffCat = Number(quantile(tempVarDumpCat,0.80));
+            maxCat = Number(quantile(tempVarDumpCat,1));
+            minUsers = Number(quantile(tempVarDumpUsers,0));
+            cutOffUser = Number(quantile(tempVarDumpUsers,0.80));
+            maxUsers = Number(quantile(tempVarDumpUsers,1)); 
+            
+            //console.log(minCat+" "+maxCat);
+            //console.log(minUsers+" "+maxUsers);
+            
+            userColorScaler = percent_scale_user.domain([minUsers,maxUsers]);
+            catColorScaler = percent_scale_cat.domain([minCat,maxCat]);
+            
+            force
+            .nodes(graph.nodes)
+            .links(graph.links)
+            .start();
+
+            var link = svg.selectAll(".link")
+            .data(graph.links)
+            .enter().append("line")
+            .attr("class", "link")
+            .style("stroke-width", 1);
+
+            var node = svg.selectAll(".node")
+            .data(graph.nodes)
+            .enter().append("circle")
+            .attr("class", "node")//return color(d.type);function(d) { return Math.sqrt(d.value/80); }
+            .style("fill", function(d) {
+                if(d.type==2){
+                    //console.log(userColorScaler(d.totalRev));
+                    return convertPercentToColor(d.type,userColorScaler(d.totalRev))
+                }else{
+                    return convertPercentToColor(d.type,catColorScaler(d.totalRev))
+                }})
+            .attr("r", function(d){
+                if(d.type==1){
+                    return 15
+                }else if(d.type==2 && d.totalRev>=cutOffUser){
+                    return 6
+                }else{
+                    return 3
+                }})
+            .call(force.drag);
+
+            node.append("title")
+            .text(function(d) { return d.name; });
+
+            force.on("tick", function() {
+                node.attr("cx", function(d) { return d.x = Math.max(15, Math.min(width - 15, d.x)); })
+                .attr("cy", function(d) { return d.y = Math.max(15, Math.min(height - 15, d.y)); });                
+                link.attr("x1", function(d) { return d.source.x; })
+                .attr("y1", function(d) { return d.source.y; })
+                .attr("x2", function(d) { return d.target.x; })
+                .attr("y2", function(d) { return d.target.y; });
+
+                node.attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; });
+            });
+        });
+    });
+</script>
+<body>
+    <div id="wrapper">
+        <div style="position:absolute;z-index:1;">
+            <svg id="backgroundCanvas" >
+            <defs>
+            <filter id="f1" x="0" y="0" width="200%" height="200%">
+                <feOffset result="offOut" in="SourceAlpha" dy="5" />
+                <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
+                <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+            </filter>
+            <!--filter id="f2" x="0" y="0" width="200%" height="200%">
+                <feOffset result="offOut" in="SourceAlpha" dx="1" dy="7" />
+                <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
+                <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+            </filter>
+            <filter id="f3" x="0" y="0" width="200%" height="200%">
+                <feOffset result="offOut" in="SourceAlpha" dx="10" dy="2" />
+                <feGaussianBlur result="blurOut" in="offOut" stdDeviation="10" />
+                <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
+            </filter-->              
+            </defs>
+            <!--rect class="instructions" x="0" y="25" rx="10" ry="10" width="460" height="227" filter="url(#f2)"/>
+            <rect class="menuOne" x="0" y="280" rx="10" ry="10" width="445" height="100" filter="url(#f2)"/>
+            <path class="menuOne" stroke-linejoin="round" d="M355,380 C360,395 360,395 367,405 L418,405 C425,395 425,395 430,380 Z" filter="url(#f3)" />
+            <text class="tabText" x="370" y="398">Format</text>
+            <rect class="menuTwo" x="0" y="430" rx="10" ry="10" width="430" height="50" filter="url(#f2)"/>
+            <rect class="menuThree" x="0" y="495" rx="10" ry="10" width="423" height="50" filter="url(#f2)"/>
+            <rect class="menuFour" x="0" y="595" rx="10" ry="10" width="413" height="50" filter="url(#f2)"/>
+            <rect class="graphBackground" x="490" y="70" rx="10" ry="10" width="590" height="580" filter="url(#f2)"/-->
+            <!path id="left_line" d="M0,4000 C100,100 10,10 140,0 L0,0 Z" filter="url(#f1)"/-->
+            <!path id="top_line" d="M4000,150 C20,20 10,60 0,150 L0,0 4000,0 Z" filter="url(#f1)"/-->
+            </svg>
+        </div>      
+        <div id="content_wrapper">
+
+        </div>
+    </div>
+</body>
